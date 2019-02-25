@@ -8,6 +8,8 @@ import (
 // Manager enables ADB commands usage from main
 type Manager struct {
 	PhoneList []string
+
+	StatusChange chan string
 }
 
 func (manager *Manager) setPhoneList() {
@@ -25,4 +27,6 @@ func (manager *Manager) Start() {
 		fmt.Print("???")
 	}
 	fmt.Println(string(startingResult))
+	manager.StatusChange = make(chan string, 1)
+	go manager.statusNotifier()
 }

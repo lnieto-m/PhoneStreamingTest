@@ -1,6 +1,7 @@
 package network
 
 import (
+	"PhoneStreamingTest/adb"
 	"fmt"
 	"log"
 
@@ -12,6 +13,12 @@ type Client struct {
 	conn *websocket.Conn
 
 	send chan []byte
+}
+
+// JSONMessage : base struct for json message for this server
+type JSONMessage struct {
+	Type    string `json:"type"`
+	Message string `json:"message"`
 }
 
 func (client *Client) readSocket() {
@@ -32,4 +39,20 @@ func (client *Client) readSocket() {
 func (client *Client) writeToSocket() {
 	defer client.conn.Close()
 	// TODO
+}
+
+func (client *Client) notifyStatusChangeToIOS(manager *adb.Manager) {
+	defer client.conn.Close()
+	for {
+		select {
+		case phoneID := <-manager.StatusChange:
+			message := JSONMessage{
+				Type:    "status",
+				Message: phoneID,
+			}
+			client.conn.WriteJSON(message)
+		default:
+			// log.Print("No message received\n")
+		}
+	}
 }

@@ -25,13 +25,15 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	flag.Parse()
-	Manager := adb.Manager{}
+	Manager := &adb.Manager{}
 	Manager.Start()
 	http.HandleFunc("/", serveHome)
 	http.HandleFunc("/ws", func(writer http.ResponseWriter, request *http.Request) {
 		network.ServeSocket(writer, request)
 	})
-
+	http.HandleFunc("/status", func(writer http.ResponseWriter, request *http.Request) {
+		network.ServeStatusSocket(Manager, writer, request)
+	})
 	log.Printf("Listening on port 8080...")
 
 	err := http.ListenAndServe(*addr, nil)
