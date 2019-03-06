@@ -31,6 +31,7 @@ func ServeSocket(writter http.ResponseWriter, request *http.Request) {
 // ServeStatusSocket notify the IOS app when a phone status change
 func ServeStatusSocket(manager *adb.Manager, writter http.ResponseWriter, request *http.Request) {
 	newConnexion, err := upgrader.Upgrade(writter, request, nil)
+
 	if err != nil {
 		log.Printf("error: %v\n", err)
 		return

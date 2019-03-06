@@ -9,7 +9,9 @@ import (
 type Manager struct {
 	PhoneList []string
 
-	StatusChange chan string
+	MinicapChan  chan []byte
+	StatusChange chan []string
+	StatusStop   chan bool
 }
 
 func (manager *Manager) setPhoneList() {
@@ -27,6 +29,9 @@ func (manager *Manager) Start() {
 		fmt.Print("???")
 	}
 	fmt.Println(string(startingResult))
-	manager.StatusChange = make(chan string, 1)
-	go manager.statusNotifier()
+	manager.StatusChange = make(chan []string, 1)
+	manager.StatusStop = make(chan bool, 1)
+	manager.MinicapChan = make(chan []byte, 1)
+	go manager.setupMinicap("8425384f34503231")
+	// go manager.StatusNotifier()
 }

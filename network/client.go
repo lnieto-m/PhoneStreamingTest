@@ -4,6 +4,7 @@ import (
 	"PhoneStreamingTest/adb"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/gorilla/websocket"
 )
@@ -36,21 +37,38 @@ func (client *Client) readSocket() {
 	}
 }
 
-func (client *Client) writeToSocket() {
+func (client *Client) writeToSocket(manager *adb.Manager) {
 	defer client.conn.Close()
+	for {
+		select {
+		case frame := <-manager.MinicapChan:
+			writter, err := client.conn.NextWriter(websocket.BinaryMessage)
+			if err != nil {
+				return
+			}
+			writter.Write(frame)
+		default:
+			// ????
+		}
+	}
 	// TODO
 }
 
 func (client *Client) notifyStatusChangeToIOS(manager *adb.Manager) {
 	defer client.conn.Close()
+	defer func() {
+		log.Print("ticker stopped")
+		manager.StatusStop <- true
+	}()
 	for {
 		select {
 		case phoneID := <-manager.StatusChange:
 			message := JSONMessage{
 				Type:    "status",
-				Message: phoneID,
+				Message: strings.Join(phoneID, ","),
 			}
 			client.conn.WriteJSON(message)
+			log.Println(strings.Join(phoneID, ","))
 		default:
 			// log.Print("No message received\n")
 		}
