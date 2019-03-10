@@ -9,12 +9,12 @@ import (
 )
 
 var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
+	ReadBufferSize:  102400000000,
+	WriteBufferSize: 102400000000,
 }
 
 //ServeSocket handles each websocket connexion
-func ServeSocket(writter http.ResponseWriter, request *http.Request) {
+func ServeSocket(manager *adb.Manager, writter http.ResponseWriter, request *http.Request) {
 	newConnexion, err := upgrader.Upgrade(writter, request, nil)
 	if err != nil {
 		log.Printf("error: %v\n", err)
@@ -25,6 +25,7 @@ func ServeSocket(writter http.ResponseWriter, request *http.Request) {
 		send: make(chan []byte, 256),
 	}
 
+	go currentClient.writeToSocket(manager)
 	go currentClient.readSocket()
 }
 

@@ -44,9 +44,11 @@ func (client *Client) writeToSocket(manager *adb.Manager) {
 		case frame := <-manager.MinicapChan:
 			writter, err := client.conn.NextWriter(websocket.BinaryMessage)
 			if err != nil {
-				return
+				log.Printf("%v\n", err)
+				continue
 			}
 			writter.Write(frame)
+			log.Printf("Frame written size: %v\n", len(frame))
 		default:
 			// ????
 		}

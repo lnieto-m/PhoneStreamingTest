@@ -2,37 +2,25 @@ package adb
 
 import (
 	"bufio"
+	"encoding/binary"
+	"io"
 	"log"
 	"net"
-	"os"
 	"os/exec"
-	"strings"
 )
 
 func (manager *Manager) setupMinicap(serial string) {
 
-	// Install minicap on Phone and launch it
+	// Launch minicap script
 
-	log.Println("installing minicap")
-	os.Setenv("ANDROID_SERIAL", serial)
-	log.Println(os.Getenv("ANDROID_SERIAL"))
-	cmd := exec.Command("echo", "$ANDROID_SERIAL")
-	cmd.Env = os.Environ()
-	outt, _ := cmd.Output()
-	log.Println(string(outt))
-	log.Println("launching...")
-	cmd = exec.Command(strings.Join([]string{"bash -c 'screen -S ", serial, " -d -m ./run.sh autosize'"}, ""))
-	cmd.Dir = "/Volumes/SAMSUNG/Library/minicap"
-	out, _ := cmd.Output()
-	log.Println(string(out))
+	log.Printf("Launching minicap on device %v\n", serial)
 
-	// Create local forward to connect to the socket
-
-	log.Println("tcp:1313 <- localabstract:minicap")
-	cmd = exec.Command("adb forward tcp:1313 localabstract:minicap")
-	cmd.Run()
-
-	// Start getting frames from minicap and push them to the websocket
+	cmd := exec.Command("./scripts/minicapSetup.sh", serial)
+	err := cmd.Run()
+	if err != nil {
+		log.Printf("%v\n", err)
+		return
+	}
 
 	log.Println("Connecting to localhost:1313 ...")
 	conn, err := net.Dial("tcp", "localhost:1313")
@@ -41,18 +29,57 @@ func (manager *Manager) setupMinicap(serial string) {
 		return
 	}
 
-	first := 0
-
 	log.Println("Reading from localhost:1313 ...")
-	scanner := bufio.NewScanner(conn)
-	for scanner.Scan() {
-		if first == 0 {
-			first++
-			_ = scanner.Bytes()
-		} else {
-			log.Println("urmom")
-			manager.MinicapChan <- scanner.Bytes()
-		}
-	}
 
+	var pid, rw, rh, vw, vh uint32
+	var version uint8
+	var unused uint8
+	var orientation uint8
+	binRead := func(data interface{}) error {
+		if err != nil {
+			return err
+		}
+		err = binary.Read(conn, binary.LittleEndian, data)
+		return err
+	}
+	binRead(&version)
+	binRead(&unused)
+	binRead(&pid)
+	binRead(&rw)
+	binRead(&rh)
+	binRead(&vw)
+	binRead(&vh)
+	binRead(&orientation)
+	binRead(&unused)
+	if err != nil {
+		log.Printf("Error Banner: %v\n", err)
+		return
+	}
+	bufrd := bufio.NewReader(conn) // Do not put it into for loop
+	for {
+		var size uint32
+		if err = binRead(&size); err != nil {
+			break
+		}
+		lr := &io.LimitedReader{
+			R: bufrd,
+			N: int64(size),
+		}
+		log.Printf("size frame %v\n", size)
+		if size > 1000000000 {
+			continue
+		}
+		// var im image.Image
+		// im, err = jpeg.Decode(lr)
+		buffer := make([]byte, int64(size))
+		lr.Read(buffer)
+		// im, _, err = image.Decode(lr)
+		if err != nil {
+			break
+		}
+		log.Println("Frame")
+		manager.MinicapChan <- buffer
+
+	}
+	conn.Close()
 }

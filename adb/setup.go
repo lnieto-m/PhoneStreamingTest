@@ -31,7 +31,7 @@ func (manager *Manager) Start() {
 	fmt.Println(string(startingResult))
 	manager.StatusChange = make(chan []string, 1)
 	manager.StatusStop = make(chan bool, 1)
-	manager.MinicapChan = make(chan []byte, 1)
+	manager.MinicapChan = make(chan []byte)
 	go manager.setupMinicap("8425384f34503231")
 	// go manager.StatusNotifier()
 }

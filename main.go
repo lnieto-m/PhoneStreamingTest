@@ -29,7 +29,7 @@ func main() {
 	Manager.Start()
 	http.HandleFunc("/", serveHome)
 	http.HandleFunc("/ws", func(writer http.ResponseWriter, request *http.Request) {
-		network.ServeSocket(writer, request)
+		network.ServeSocket(Manager, writer, request)
 	})
 	http.HandleFunc("/status", func(writer http.ResponseWriter, request *http.Request) {
 		network.ServeStatusSocket(Manager, writer, request)
